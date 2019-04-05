@@ -1,4 +1,6 @@
 import tkinter as tk
+from threading import Thread, Lock
+
 import numpy as np
 
 from Simulation import Simulation
@@ -8,8 +10,9 @@ from Visualization import Visualization
 class Interface:
     def __init__(self):
         self.init_TkWindow()
+        self.run = Lock()
         self.v = Visualization()
-        self.v.draw((100, 100))
+        self.update_planet(None)
         tk.mainloop()
 
     def update_planet(self, _):
@@ -34,18 +37,16 @@ class Interface:
         label.pack()  # podpinanie kontrolki pod okno
 
         self.vals = {
-            "vxtext": tk.StringVar(),
-            "vytext": tk.StringVar(),
-            "xtext": tk.StringVar(),
-            "ytext": tk.StringVar(),
-            "ttext": tk.StringVar(),
-            "m1text": tk.StringVar(),
-            "m2text": tk.StringVar(),
-            "r1text": tk.StringVar(),
-            "r2text": tk.StringVar()}
+            "vxtext": tk.StringVar(value="20"),
+            "vytext": tk.StringVar(value="10"),
+            "xtext": tk.StringVar(value="50"),
+            "ytext": tk.StringVar(value="50"),
+            "ttext": tk.StringVar(value="1/60"),
+            "m1text": tk.StringVar(value="10**10"),
+            "m2text": tk.StringVar(value="100"),
+            "r1text": tk.StringVar(value="20"),
+            "r2text": tk.StringVar(value="10")}
 
-        for v in self.vals.values():
-            v.set(100)
 
         tk.Label(self.window, text="Położenie planety, współrzędna x").pack()
         start_position_x = tk.Entry(self.window, textvariable=self.vals["xtext"], width=40)
@@ -83,9 +84,12 @@ class Interface:
         run = tk.Button(self.window, text="Run", width=20, command=self.start_simulation)
         run.pack()
 
+        reset = tk.Button(self.window, text = "Reset", width=20, command=self.start_simulation)
+        reset.pack()
+
         self.window.bind('<KeyRelease>', self.update_planet)
 
-    def start_simulation(self):
+    def __start_simulation(self):
         v1 = eval(self.vals["vxtext"].get()) or 0
         v2 = eval(self.vals["vytext"].get()) or 0
         r1 = eval(self.vals["r1text"].get()) or 0
@@ -99,8 +103,16 @@ class Interface:
         s = Simulation((float((sp1)), float((sp2))), (float((v1)), float((v2))), float((ts)),
                        int(m1), int(m2), float((r1)), float((r2)))
 
+        self.v = Visualization()
         for i in s:
             self.v.draw(i, rad=(r1, r2))
+
+    def start_simulation(self):
+        self.t=Thread(target=self.__start_simulation)
+        self.t.start()
+
+    def restart_simulation(self):
+        self.start_simulation()
 
 
 if __name__ == "__main__":
